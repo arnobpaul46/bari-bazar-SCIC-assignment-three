@@ -198,3 +198,35 @@ export const getSingleItem = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
+
+// ============================================
+// delete item api 
+// ============================================
+
+export const deleteItem = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;          
+    const user = req.user;
+
+
+    const item = await Item.findById(id);
+    if (!item) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+
+    if (user.role !== 'admin' && item.sellerId.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        message: 'Access denied. You can only delete your own properties.',
+      });
+    }
+
+    await item.deleteOne();
+
+    res.status(200).json({
+      message: 'Property deleted successfully!',
+    });
+  } catch (error) {
+    console.error('Delete item error:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
