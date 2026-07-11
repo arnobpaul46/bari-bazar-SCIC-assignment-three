@@ -158,3 +158,43 @@ export const getAllItems = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error. Please try again later.' });
   }
 };
+
+
+// ============================================
+// get item by id api 
+// ============================================
+
+export const getSingleItem = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params; 
+
+    const item = await Item.findById(id)
+      .populate('sellerId', 'name email') 
+      .populate('reviews.userId', 'name') 
+      .lean();
+
+    
+    if (!item) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+
+    
+    const relatedItems = await Item.find({
+      category: item.category,
+      _id: { $ne: id }, 
+      status: 'active', 
+    })
+      .limit(4) 
+      .select('title price location imageUrl rating') 
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      item,
+      relatedItems,
+    });
+  } catch (error) {
+    console.error('Get single item error:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
