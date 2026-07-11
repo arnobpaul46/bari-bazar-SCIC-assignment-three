@@ -51,7 +51,7 @@ const ItemSchema = new Schema<IItem>(
     category: {
       type: String,
       required: [true, 'Category is required'],
-      enum: ['বিক্রি', 'ভাড়া', 'সেমি-ফার্নিশড', 'ফার্নিশড'], 
+      enum: ['sale', 'rent', 'semi-furnished', 'furnished'], 
     },
     imageUrl: {
       type: String,
