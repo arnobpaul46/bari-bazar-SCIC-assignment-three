@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User.model';
 import jwt from 'jsonwebtoken';
+import { AuthRequest } from '../middlewares/auth';
 // ============================================
 // register user api
 // ============================================
@@ -116,5 +117,36 @@ export const login = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+};
+
+
+// ============================================
+// checking who am i
+// ============================================
+
+export const getMe = async (req: AuthRequest, res: Response) => {
+  try {
+
+    const user = req.user;
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        subscriptionStatus: user.subscriptionStatus,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Get me error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
