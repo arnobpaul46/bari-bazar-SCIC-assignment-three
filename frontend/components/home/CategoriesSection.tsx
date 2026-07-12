@@ -38,7 +38,7 @@ export function CategoriesSection() {
   return (
     <section className="py-12 md:py-20 border-t">
       <div className="mx-auto w-full max-w-[92%] sm:max-w-[88%] md:max-w-[80%] px-4 sm:px-6 lg:px-8">
-        {/* হেডার */}
+        
         <div className="text-center mb-10 md:mb-16">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -60,7 +60,7 @@ export function CategoriesSection() {
           </motion.p>
         </div>
 
-        {/* ক্যাটাগরি গ্রিড */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {categories.map((category, index) => {
             const Icon = category.icon;
