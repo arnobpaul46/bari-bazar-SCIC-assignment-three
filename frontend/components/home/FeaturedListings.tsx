@@ -6,60 +6,47 @@ import { ItemCard } from '@/components/items/ItemCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import api from '@/src/lib/axios'; 
 
-// ডামি ডেটা (পরে API থেকে আসবে)
-const dummyItems = [
-  {
-    _id: '1',
-    title: 'Sunset Villa',
-    location: 'Gulshan, Dhaka',
-    price: 350000,
-    bedrooms: 3,
-    bathrooms: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&auto=format&fit=crop&q=60',
-    rating: 4.8,
-    category: 'sale',
-  },
-  {
-    _id: '2',
-    title: 'Ocean View Apartment',
-    location: 'Banani, Dhaka',
-    price: 280000,
-    bedrooms: 2,
-    bathrooms: 1,
-    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=400&auto=format&fit=crop&q=60',
-    rating: 4.5,
-    category: 'sale',
-  },
-  {
-    _id: '3',
-    title: 'Lake Side Villa',
-    location: 'Uttara, Dhaka',
-    price: 420000,
-    bedrooms: 4,
-    bathrooms: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&auto=format&fit=crop&q=60',
-    rating: 4.9,
-    category: 'sale',
-  },
-  {
-    _id: '4',
-    title: 'Modern Penthouse',
-    location: 'Dhanmondi, Dhaka',
-    price: 550000,
-    bedrooms: 3,
-    bathrooms: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&auto=format&fit=crop&q=60',
-    rating: 4.7,
-    category: 'sale',
-  },
-];
+interface Item {
+  _id: string;
+  title: string;
+  location: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  imageUrl: string;
+  rating: number;
+  category: string;
+}
 
 export function FeaturedListings() {
-  const [items, setItems] = useState(dummyItems);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        
+        const res = await api.get('/items?limit=4&sort=newest');
+        if (res.data.success) {
+          setItems(res.data.items);
+        } else {
+          setItems([]);
+        }
+      } catch (error) {
+        console.error('Error fetching items:', error);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
+
+
   const SkeletonCard = () => (
     <div className="rounded-2xl border bg-background/50 overflow-hidden animate-pulse">
       <div className="aspect-[4/3] bg-muted" />
@@ -78,8 +65,8 @@ export function FeaturedListings() {
   return (
     <section className="py-12 md:py-20 border-t">
       <div className="mx-auto w-full max-w-[92%] sm:max-w-[88%] md:max-w-[80%] px-4 sm:px-6 lg:px-8">
-
-        <div className="flex flex-row   justify-between mb-8 md:mb-12">
+        
+        <div className="flex flex-row justify-between mb-8 md:mb-12">
           <div>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -95,7 +82,7 @@ export function FeaturedListings() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               viewport={{ once: true }}
-              className="text-sm w-5/6 md:w-fit sm:text-base text-muted-foreground mt-1"
+              className="text-sm sm:text-base text-muted-foreground mt-1"
             >
               Discover our handpicked selection of premium properties.
             </motion.p>
@@ -111,7 +98,8 @@ export function FeaturedListings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-            : items.map((item, index) => (
+            : items.length > 0
+            ? items.map((item, index) => (
                 <motion.div
                   key={item._id}
                   initial={{ opacity: 0, y: 30 }}
@@ -121,7 +109,9 @@ export function FeaturedListings() {
                 >
                   <ItemCard item={item} />
                 </motion.div>
-              ))}
+              ))
+            : 
+              Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       </div>
     </section>

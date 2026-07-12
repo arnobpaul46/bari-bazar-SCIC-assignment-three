@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { MapPin, Bed, Bath, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// টাইপ ডিফাইন
+
 interface ItemCardProps {
   item: {
     _id: string;
