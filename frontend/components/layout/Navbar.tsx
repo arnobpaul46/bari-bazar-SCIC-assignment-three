@@ -3,7 +3,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Moon, Sun, Menu, X, User, PlusCircle, LayoutDashboard, LogOut } from 'lucide-react';
+import {
+  Moon, Sun, Menu, X, User, PlusCircle, LayoutDashboard,
+  LogOut, Bookmark, Settings, Home, Compass, Phone
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +37,6 @@ export function Navbar() {
         .split('; ')
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
-
       if (!token) {
         setUser(null);
         setLoading(false);
@@ -42,8 +44,7 @@ export function Navbar() {
       }
       const res = await api.get('/auth/me');
       setUser(res.data.user);
-    } catch (error) {
-      console.error("User fetch error:", error);
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -71,12 +72,53 @@ export function Navbar() {
 
   const isLoggedIn = !!user;
 
+  // Main nav links (About removed)
   const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/explore', label: 'Explore' },
-    { href: '/about', label: 'About' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/explore', label: 'Explore', icon: Compass },
+    { href: '/contact', label: 'Contact', icon: Phone },
   ];
+
+  // Role‑based extra links for logged‑in users (used in both desktop & mobile)
+  const protectedLinks = useMemo(() => {
+    if (!isLoggedIn) return [];
+    const links = [];
+
+    // Buyer gets Bookmarks and Dashboard in the nav bar
+    if (user?.role === 'buyer') {
+      links.push({ href: '/bookmarks', label: 'Bookmarks', icon: Bookmark });
+      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
+    }
+
+    // Seller / Admin get property management links
+    if (user?.role === 'seller' || user?.role === 'admin') {
+      links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
+      links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
+    }
+
+    // Admin only
+    if (user?.role === 'admin') {
+      links.push({ href: '/admin/dashboard', label: 'Admin Panel', icon: Settings });
+    }
+
+    return links;
+  }, [isLoggedIn, user]);
+
+  // Build the combined list for desktop nav (no duplicates)
+  const desktopNavLinks = useMemo(() => {
+    const all = [...navLinks];
+    if (isLoggedIn) {
+      // Avoid adding duplicate Dashboard/Bookmarks if already present
+      const existingHrefs = new Set(all.map(link => link.href));
+      for (const link of protectedLinks) {
+        if (!existingHrefs.has(link.href)) {
+          all.push(link);
+          existingHrefs.add(link.href);
+        }
+      }
+    }
+    return all;
+  }, [navLinks, isLoggedIn, protectedLinks]);
 
   if (loading) {
     return (
@@ -92,29 +134,33 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto w-full max-w-[80%] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* লোগো */}
+          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
               BariBazar
             </span>
           </Link>
 
-          {/* ডেস্কটপ নেভিগেশন */}
+          {/* Desktop nav (no duplicates) */}
           <nav className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-orange-500 ${
-                  pathname === link.href ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {desktopNavLinks.map(({ href, label, icon: Icon }) => {
+              const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-orange-500 ${
+                    isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
-          {/* ডান পাশের বাটন ও ড্রপডাউন */}
+          {/* Right side */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             {isLoggedIn && (user?.role === 'seller' || user?.role === 'admin') && (
               <Link href="/items/add" className="hidden sm:inline-block">
@@ -146,7 +192,7 @@ export function Navbar() {
                   </Avatar>
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-48 sm:w-56">
+                <DropdownMenuContent align="end" className="w-56">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-0.5">
                       <p className="text-sm font-medium">{user?.name}</p>
@@ -154,8 +200,9 @@ export function Navbar() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem className="cursor-pointer p-0">
                       <Link
                         href={
                           user?.role === 'admin'
@@ -164,17 +211,62 @@ export function Navbar() {
                             ? '/seller/dashboard'
                             : '/dashboard'
                         }
-                        className="cursor-pointer"
+                        className={`flex w-full items-center px-2 py-1.5 text-sm ${
+                          pathname.startsWith('/dashboard') ||
+                          pathname.startsWith('/admin/dashboard') ||
+                          pathname.startsWith('/seller/dashboard')
+                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30'
+                            : ''
+                        }`}
                       >
                         <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" /> Profile
+                    <DropdownMenuItem className="cursor-pointer p-0">
+                      <Link
+                        href="/profile"
+                        className={`flex w-full items-center px-2 py-1.5 text-sm ${
+                          pathname === '/profile' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''
+                        }`}
+                      >
+                        <User className="mr-2 h-4 w-4" /> My Profile
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuGroup>
+                    {user?.role === 'buyer' && (
+                      <DropdownMenuItem className="cursor-pointer p-0">
+                        <Link href="/bookmarks" className="flex w-full items-center px-2 py-1.5 text-sm">
+                          <Bookmark className="mr-2 h-4 w-4" /> Bookmarks
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {(user?.role === 'seller' || user?.role === 'admin') && (
+                      <>
+                        <DropdownMenuItem className="cursor-pointer p-0">
+                          <Link href="/items/manage" className="flex w-full items-center px-2 py-1.5 text-sm">
+                            <LayoutDashboard className="mr-2 h-4 w-4" /> My Listings
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer p-0">
+                          <Link href="/items/add" className="flex w-full items-center px-2 py-1.5 text-sm">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Property
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {user?.role === 'admin' && (
+                      <DropdownMenuItem className="cursor-pointer p-0">
+                        <Link href="/admin/dashboard" className="flex w-full items-center px-2 py-1.5 text-sm">
+                          <Settings className="mr-2 h-4 w-4" /> Admin Panel
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuGroup>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer text-red-600 focus:text-red-600"
@@ -199,7 +291,6 @@ export function Navbar() {
               </div>
             )}
 
-            {/* মোবাইল মেনু টগল */}
             <Button
               variant="ghost"
               size="icon"
@@ -212,49 +303,49 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* মোবাইল মেনু */}
+      {/* Mobile menu (no duplicates) */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur">
           <div className="mx-auto w-full max-w-[80%] px-4 py-3 space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMenuOpen(false)}
-                className={`block py-2 text-sm font-medium ${
-                  pathname === link.href ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {isLoggedIn && (
-              <div className="border-t pt-2 space-y-1">
+            {desktopNavLinks.map(({ href, label, icon: Icon }) => {
+              const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+              return (
                 <Link
-                  href="/dashboard"
+                  key={href}
+                  href={href}
                   onClick={() => setIsMenuOpen(false)}
-                  className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
+                  className={`flex items-center gap-2 py-2 text-sm font-medium ${
+                    isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
+                  }`}
                 >
-                  Dashboard
+                  <Icon className="h-4 w-4" />
+                  {label}
                 </Link>
+              );
+            })}
+
+            {isLoggedIn && (
+              <>
+                {/* Add additional mobile-only items if needed, but avoid duplicates */}
                 <Link
                   href="/profile"
                   onClick={() => setIsMenuOpen(false)}
-                  className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
+                  className="flex items-center gap-2 py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
                 >
-                  Profile
+                  <User className="h-4 w-4" /> Profile
                 </Link>
                 <button
                   onClick={() => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 text-sm font-medium text-red-600"
+                  className="flex items-center gap-2 w-full text-left py-2 text-sm font-medium text-red-600"
                 >
-                  Sign Out
+                  <LogOut className="h-4 w-4" /> Sign Out
                 </button>
-              </div>
+              </>
             )}
+
             {!isLoggedIn && (
               <div className="border-t pt-2 space-y-2">
                 <Link href="/login" onClick={() => setIsMenuOpen(false)}>
