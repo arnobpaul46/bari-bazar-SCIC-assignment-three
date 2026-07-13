@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { FaFacebook, FaInstagram, FaYoutube, FaTwitter } from 'react-icons/fa';
 import { Phone, Mail, MapPin } from 'lucide-react'; 
 
 const quickLinks = [
@@ -11,12 +12,11 @@ const quickLinks = [
   { href: '/terms', label: 'Terms of Service' },
 ];
 
-
 const socialLinks = [
-  { icon: '👍', href: 'https://facebook.com', label: 'Facebook' },
-  { icon: '📸', href: 'https://instagram.com', label: 'Instagram' },
-  { icon: '▶️', href: 'https://youtube.com', label: 'YouTube' },
-  { icon: '🐦', href: 'https://twitter.com', label: 'Twitter' },
+  { icon: FaFacebook, href: 'https://facebook.com', label: 'Facebook' },
+  { icon: FaInstagram, href: 'https://instagram.com', label: 'Instagram' },
+  { icon: FaYoutube, href: 'https://youtube.com', label: 'YouTube' },
+  { icon: FaTwitter, href: 'https://twitter.com', label: 'Twitter' },
 ];
 
 export function Footer() {
@@ -38,18 +38,21 @@ export function Footer() {
               Verified listings, top agents, and seamless transactions.
             </p>
             <div className="flex items-center gap-3">
-              {socialLinks.map((social) => (
-                <Link
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border p-2 text-muted-foreground transition-all hover:border-orange-500 hover:text-orange-500 hover:bg-orange-500/10"
-                  aria-label={social.label}
-                >
-                  <span className="text-lg">{social.icon}</span>
-                </Link>
-              ))}
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
+                return (
+                  <Link
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border p-2 text-muted-foreground transition-all hover:border-orange-500 hover:text-orange-500 hover:bg-orange-500/10"
+                    aria-label={social.label}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
@@ -72,7 +75,7 @@ export function Footer() {
             </ul>
           </div>
 
-          
+
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">
               Contact Us
@@ -130,7 +133,7 @@ export function Footer() {
 
         
         <div className="mt-10 pt-6 border-t text-center text-sm text-muted-foreground">
-          &copy; {currentYear} BariBazar. All rights reserved. | Made with ❤️ in Bangladesh | By Arnob Paul
+          &copy; {currentYear} BariBazar. All rights reserved. | Made with ❤️ in Bangladesh
         </div>
       </div>
     </footer>

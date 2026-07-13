@@ -1,37 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { User } from '../models/User.model';
+import { auth } from '../lib/auth';
 
-// jwt custom type 
-export interface AuthRequest extends Request {
-  user?: any; 
-}
-
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
   try {
     
-    const token = req.headers.authorization?.split(' ')[1]; 
-
+    const session = await auth.api.getSession({ headers: req.headers });
     
-    if (!token) {
-      return res.status(401).json({ message: 'Not authorized, no token provided' });
+    if (!session) {
+      return res.status(401).json({ message: 'Not authorized' });
     }
-
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; role: string };
-
-
-    const user = await User.findById(decoded.id).select('-password');
-
     
-    if (!user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' });
-    }
-
-    req.user = user;
+    
+    (req as any).user = session.user;
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    return res.status(401).json({ message: 'Not authorized, invalid token' });
+    return res.status(401).json({ message: 'Invalid token or session expired' });
   }
 };

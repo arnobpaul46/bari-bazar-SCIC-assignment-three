@@ -1,153 +1,52 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User.model';
 import jwt from 'jsonwebtoken';
-import { AuthRequest } from '../middlewares/auth';
-// ============================================
-// register user api
-// ============================================
+import { User } from '../models/User.model';
+
 export const register = async (req: Request, res: Response) => {
   try {
-    // get request body
     const { name, email, password, role } = req.body;
-
-    // validation 
-    if (!name) {
-      return res.status(400).json({ message: 'Name is required' });
-    }
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-    if (!password) {
-      return res.status(400).json({ message: 'Password is required' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
-
-    // check if email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-
-    // hash password (bcrypt)
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // create new user
-    const newUser = new User({
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      role: role || 'buyer', // if role is not provided, set it to 'buyer'
-    });
-
-    // save user to database
-    await newUser.save();
-
-    // success response 
-    res.status(201).json({
-      message: 'User registered successfully!',
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        createdAt: newUser.createdAt,
-      },
-    });
+    const user = new User({ name, email, password: hashedPassword, role: role || 'buyer' });
+    await user.save();
+    res.status(201).json({ message: 'User registered', user });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
+    res.status(500).json({ error: 'Registration failed' });
   }
 };
 
-
-
-// ============================================
-// login user api
-// ============================================
 export const login = async (req: Request, res: Response) => {
   try {
-    // get request body
     const { email, password } = req.body;
-
-    // validation
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-    if (!password) {
-      return res.status(400).json({ message: 'Password is required' });
-    }
-
-    // find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' }); // 401 = অননুমোদিত
-    }
-
-    // compare password with hashed password
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-
-    const token = jwt.sign(
-      { 
-        id: user._id, 
-        role: user.role 
-      },
-      process.env.JWT_SECRET!, 
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } 
-    );
-
-    
-    res.status(200).json({
-      message: 'Login successful',
-      token,  
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        subscriptionStatus: user.subscriptionStatus, 
-      },
-    });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET!, { expiresIn: '7d' });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
+    res.status(500).json({ error: 'Login failed' });
   }
 };
 
-
-// ============================================
-// checking who am i
-// ============================================
-
-export const getMe = async (req: AuthRequest, res: Response) => {
+// ✅ নতুন: getMe ফাংশন যোগ করুন
+export const getMe = async (req: Request, res: Response) => {
   try {
-
-    const user = req.user;
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // টোকেন থেকে ইউজার আইডি বের করুন
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
     }
-
-    res.status(200).json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        subscriptionStatus: user.subscriptionStatus,
-        createdAt: user.createdAt,
-      },
-    });
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({ user });
   } catch (error) {
-    console.error('Get me error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
-

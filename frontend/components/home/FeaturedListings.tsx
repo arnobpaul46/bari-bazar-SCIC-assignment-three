@@ -6,7 +6,7 @@ import { ItemCard } from '@/components/items/ItemCard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import api from '@/src/lib/axios'; 
+import api from '@/lib/axios'; 
 
 interface Item {
   _id: string;

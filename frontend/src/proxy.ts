@@ -7,11 +7,7 @@ const authRoutes = ['/login', '/register'];
 export function proxy(request: NextRequest) {
   
   const path = request.nextUrl.pathname;
-
-
   const token = request.cookies.get('token')?.value;
-
-
   if (token && authRoutes.includes(path)) {
     return NextResponse.redirect(new URL('/', request.url));
   }

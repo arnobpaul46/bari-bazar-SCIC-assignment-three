@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Moon, Sun, Menu, X, User, LogOut, PlusCircle, LayoutDashboard } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -15,25 +15,55 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-const DEMO_USER = {
-  id: '1',
-  name: 'Test User',
-  email: 'test@example.com',
-  role: 'seller',
-  isLoggedIn: true,
-};
+import api from '@/lib/axios';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
 
   useEffect(() => setMounted(true), []);
 
-  const user = DEMO_USER;
-  const isLoggedIn = user.isLoggedIn;
+  const fetchUser = async () => {
+    try {
+      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      const res = await api.get('/auth/me');
+      setUser(res.data.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 👇 router.refresh() বা pathname change হলে আবার fetch করবে
+  useEffect(() => {
+    fetchUser();
+  }, [pathname]); // 👈 এই লাইনটি গুরুত্বপূর্ণ
+
+  // 👇 প্রতি 5 সেকেন্ডে চেক করবে (ব্যাকআপ)
+  useEffect(() => {
+    const interval = setInterval(fetchUser, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogout = () => {
+    document.cookie = 'token=; path=/; max-age=0';
+    setUser(null);
+    router.push('/login');
+    router.refresh();
+  };
+
+  const isLoggedIn = !!user;
 
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -44,30 +74,38 @@ export function Navbar() {
 
   const protectedLinks = isLoggedIn
     ? [
-        ...(user.role === 'seller' || user.role === 'admin'
+        ...(user?.role === 'seller' || user?.role === 'admin'
           ? [{ href: '/items/add', label: 'Add Property', icon: PlusCircle }]
           : []),
-        ...(user.role === 'seller' || user.role === 'admin'
+        ...(user?.role === 'seller' || user?.role === 'admin'
           ? [{ href: '/items/manage', label: 'My Listings' }]
           : []),
-        ...(user.role === 'admin'
+        ...(user?.role === 'admin'
           ? [{ href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard }]
           : []),
       ]
     : [];
 
+  if (loading) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto w-full max-w-[80%] px-4 h-16 flex items-center">
+          <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto w-full max-w-[80%] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* লোগো */}
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
               BariBazar
             </span>
           </Link>
 
-          {/* ডেস্কটপ নেভ */}
           <nav className="hidden md:flex items-center space-x-6">
             {navLinks.map((link) => (
               <Link
@@ -82,9 +120,8 @@ export function Navbar() {
             ))}
           </nav>
 
-          {/* ডান পাশ */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            {isLoggedIn && (user.role === 'seller' || user.role === 'admin') && (
+            {isLoggedIn && (user?.role === 'seller' || user?.role === 'admin') && (
               <Link href="/items/add" className="hidden sm:inline-block">
                 <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm">
                   <PlusCircle className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Add Property
@@ -105,28 +142,25 @@ export function Navbar() {
 
             {isLoggedIn ? (
               <DropdownMenu>
-                {/* ✅ সরাসরি Avatar, Button বাদ (নেস্টেড বাটন সলভ) */}
                 <DropdownMenuTrigger className="focus:outline-none">
                   <Avatar className="h-8 w-8 sm:h-9 sm:w-9 cursor-pointer ring-2 ring-transparent transition-all hover:ring-orange-500">
-                    <AvatarImage src="https://github.com/shadcn.png" alt={user.name} />
+                    <AvatarImage src={`https://ui-avatars.com/api/?name=${user?.name}&background=orange&color=fff`} />
                     <AvatarFallback className="text-xs sm:text-sm">
-                      {user.name.charAt(0).toUpperCase()}
+                      {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-
                 <DropdownMenuContent align="end" className="w-48 sm:w-56">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-sm font-medium leading-none">{user?.name}</p>
                       <p className="text-xs leading-none text-muted-foreground truncate max-w-[150px]">
-                        {user.email}
+                        {user?.email}
                       </p>
+                      <p className="text-xs text-orange-500 capitalize">{user?.role}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-
-                  {/* ✅ asChild ব্যবহার করি নি, শুধু Link */}
                   {protectedLinks.map((link) => (
                     <DropdownMenuItem key={link.href} className="cursor-pointer">
                       <Link href={link.href} className="flex w-full items-center text-sm">
@@ -135,15 +169,16 @@ export function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                   ))}
-
                   <DropdownMenuItem className="cursor-pointer">
                     <Link href="/profile" className="flex w-full items-center text-sm">
                       <User className="mr-2 h-4 w-4" /> Profile
                     </Link>
                   </DropdownMenuItem>
-
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer text-red-600 text-sm">
+                  <DropdownMenuItem
+                    className="cursor-pointer text-red-600 text-sm"
+                    onClick={handleLogout}
+                  >
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -175,9 +210,8 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* মোবাইল মেনু (আগের মতো) */}
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="md:hidden border-t bg-background/95 backdrop-blur">
           <div className="mx-auto w-full max-w-[80%] px-4 py-3 space-y-2">
             {navLinks.map((link) => (
               <Link
@@ -191,15 +225,6 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {isLoggedIn && (user.role === 'seller' || user.role === 'admin') && (
-              <Link
-                href="/items/add"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center py-2 text-sm text-orange-500 font-medium"
-              >
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Property
-              </Link>
-            )}
             {isLoggedIn && (
               <div className="border-t pt-2 space-y-1">
                 {protectedLinks.map((link) => (
@@ -220,7 +245,13 @@ export function Navbar() {
                 >
                   <User className="mr-2 h-4 w-4" /> Profile
                 </Link>
-                <button className="flex w-full items-center py-2 text-sm text-red-600">
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex w-full items-center py-2 text-sm text-red-600"
+                >
                   <LogOut className="mr-2 h-4 w-4" /> Logout
                 </button>
               </div>
