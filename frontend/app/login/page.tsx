@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, User, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import api from '@/lib/axios';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,37 +27,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log('📤 1. Starting login...');
-      console.log('📤 2. Email:', email);
-      console.log('📤 3. Password:', password);
-
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log('📥 4. Response status:', response.status);
-
-      const data = await response.json();
-      console.log('📥 5. Response data:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      console.log('✅ 6. Token received:', data.token);
-      
-      document.cookie = `token=${data.token}; path=/; max-age=604800`;
-      console.log('🍪 7. Cookie set:', document.cookie);
-      
+      const res = await api.post('/auth/login', { email, password });
+      document.cookie = `token=${res.data.token}; path=/; max-age=604800`;
       router.push('/');
       router.refresh();
     } catch (err: any) {
-      console.error('❌ Error:', err.message);
-      setError(err.message || 'Invalid email or password');
+      setError(err.response?.data?.error || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

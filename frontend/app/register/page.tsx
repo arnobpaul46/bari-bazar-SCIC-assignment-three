@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Mail, Lock, User, Eye, EyeOff, Image as ImageIcon, AlertCircle, Users, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { authClient } from '@/lib/auth-client';
+import api from '@/lib/axios';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,15 +19,16 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sellerWarning, setSellerWarning] = useState(false);
+  const [success, setSuccess] = useState('');
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
-    
+    // Seller সিলেক্ট করলে ব্লক
     if (role === 'seller') {
-      setSellerWarning(true);
+      setError('Seller registration is coming soon! Please register as a Buyer.');
       return;
     }
 
@@ -39,26 +40,33 @@ export default function RegisterPage() {
       setError('Password must be at least 6 characters');
       return;
     }
+    if (!name) {
+      setError('Name is required');
+      return;
+    }
+    if (!email) {
+      setError('Email is required');
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const { data, error } = await authClient.signUp.email({
+      const response = await api.post('/auth/register', {
         name,
         email,
         password,
+        role: 'buyer',
         image: image || undefined,
-        metadata: { role: 'buyer' },
       });
 
-      if (error) {
-        setError(error.message || 'Registration failed. Please try again.');
-        return;
-      }
-
-      router.push('/login?registered=true');
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setSuccess('Account created successfully! Redirecting to login...');
+      
+      setTimeout(() => {
+        router.push('/login?registered=true');
+      }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -79,24 +87,20 @@ export default function RegisterPage() {
           <p className="text-muted-foreground mt-1 text-sm">Start your journey with BariBazar</p>
         </div>
 
-        
-        {sellerWarning && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-600 dark:text-amber-400">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <span>
-              <strong>Seller registration is coming soon!</strong> Please register as a Buyer for now.
-            </span>
-          </div>
-        )}
-
         {error && (
           <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-500">
             {error}
           </div>
         )}
 
+        {success && (
+          <div className="mb-4 rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-500">
+            {success}
+          </div>
+        )}
+
         <form onSubmit={handleRegister} className="space-y-4">
-          
+          {/* Name */}
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">Full Name</label>
             <div className="relative">
@@ -112,7 +116,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          
+          {/* Email */}
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">Email Address</label>
             <div className="relative">
@@ -127,6 +131,44 @@ export default function RegisterPage() {
                 required
               />
             </div>
+          </div>
+
+          {/* Role Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">I want to register as</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('buyer');
+                  setError('');
+                }}
+                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
+                  role === 'buyer'
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-500'
+                    : 'border-white/10 hover:border-orange-500/50'
+                }`}
+              >
+                <Users className="h-4 w-4" /> Buyer
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('seller');
+                  setError('Seller registration is coming soon! Please register as a Buyer.');
+                }}
+                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
+                  role === 'seller'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                    : 'border-white/10 hover:border-amber-500/50'
+                }`}
+              >
+                <Briefcase className="h-4 w-4" /> Seller
+              </button>
+            </div>
+            {role === 'seller' && (
+              <p className="text-xs text-amber-500 mt-1">⚠️ Seller registration is coming soon!</p>
+            )}
           </div>
 
           {/* Profile Image (optional) */}
@@ -145,44 +187,6 @@ export default function RegisterPage() {
                 className="pl-9 bg-background/50 border-white/10 focus:border-orange-500"
               />
             </div>
-          </div>
-
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">I want to register as</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setRole('buyer');
-                  setSellerWarning(false);
-                }}
-                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
-                  role === 'buyer'
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-500'
-                    : 'border-white/10 hover:border-orange-500/50'
-                }`}
-              >
-                <Users className="h-4 w-4" /> Buyer
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setRole('seller');
-                  setSellerWarning(true);
-                }}
-                className={`flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all ${
-                  role === 'seller'
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-500'
-                    : 'border-white/10 hover:border-amber-500/50'
-                }`}
-              >
-                <Briefcase className="h-4 w-4" /> Seller
-              </button>
-            </div>
-            {role === 'seller' && (
-              <p className="text-xs text-amber-500 mt-1">⚠️ Seller registration is coming soon!</p>
-            )}
           </div>
 
           {/* Password */}
