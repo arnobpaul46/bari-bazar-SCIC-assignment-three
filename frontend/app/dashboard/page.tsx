@@ -1,72 +1,81 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Home, PlusCircle, List } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Home, Bookmark, Package, User } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import api from '@/lib/axios';
 
-export default function DashboardPage() {
+export default function DashboardHome() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    bookmarks: 0,
+    orders: 0,
+  });
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/auth/me');
-        setUser(res.data.user);
-      } catch {
-        router.push('/login');
-      } finally {
-        setLoading(false);
+        const userRes = await api.get('/auth/me');
+        setUser(userRes.data.user);
+        // Fetch counts (you can implement these endpoints)
+        // For now, we'll use dummy or fetch from existing endpoints
+        const [bookmarksRes, ordersRes] = await Promise.all([
+          api.get('/bookmarks'),
+          api.get('/orders'),
+        ]);
+        setStats({
+          bookmarks: bookmarksRes.data.bookmarks?.length || 0,
+          orders: ordersRes.data.orders?.length || 0,
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
       }
     };
-    fetchUser();
-  }, [router]);
+    fetchData();
+  }, []);
 
-  if (loading) return <div className="min-h-[60vh] flex items-center justify-center">Loading...</div>;
   if (!user) return null;
 
   return (
-    <div className="container mx-auto max-w-[80%] px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">Welcome, {user.name}!</h1>
-      <p className="text-muted-foreground mb-8">Role: {user.role}</p>
+    <div>
+      <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h1>
+      <p className="text-muted-foreground mb-6">Here's a quick overview of your account.</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/">
-          <div className="rounded-xl border p-6 text-center hover:shadow-lg transition-all hover:border-orange-500/50">
-            <Home className="h-10 w-10 mx-auto text-orange-500 mb-3" />
-            <h3 className="font-semibold">Browse Properties</h3>
-            <p className="text-sm text-muted-foreground">Find your dream home</p>
-          </div>
-        </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Bookmarks</CardTitle>
+            <Bookmark className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.bookmarks}</div>
+            <p className="text-xs text-muted-foreground">Saved properties</p>
+          </CardContent>
+        </Card>
 
-        {user.role === 'seller' || user.role === 'admin' ? (
-          <>
-            <Link href="/items/add">
-              <div className="rounded-xl border p-6 text-center hover:shadow-lg transition-all hover:border-orange-500/50">
-                <PlusCircle className="h-10 w-10 mx-auto text-orange-500 mb-3" />
-                <h3 className="font-semibold">Add Property</h3>
-                <p className="text-sm text-muted-foreground">List a new property</p>
-              </div>
-            </Link>
-            <Link href="/items/manage">
-              <div className="rounded-xl border p-6 text-center hover:shadow-lg transition-all hover:border-orange-500/50">
-                <List className="h-10 w-10 mx-auto text-orange-500 mb-3" />
-                <h3 className="font-semibold">My Listings</h3>
-                <p className="text-sm text-muted-foreground">Manage your properties</p>
-              </div>
-            </Link>
-          </>
-        ) : (
-          <div className="rounded-xl border p-6 text-center">
-            <List className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <h3 className="font-semibold">Saved Properties</h3>
-            <p className="text-sm text-muted-foreground">Your favorites list</p>
-          </div>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Orders</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.orders}</div>
+            <p className="text-xs text-muted-foreground">Total purchases</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Profile</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm">{user?.email}</div>
+            <p className="text-xs text-muted-foreground">Role: {user?.role}</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

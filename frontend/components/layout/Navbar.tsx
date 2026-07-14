@@ -85,7 +85,7 @@ export function Navbar() {
     const links = [];
 
     if (user?.role === 'buyer') {
-      links.push({ href: '/bookmarks', label: 'Bookmarks' });
+      links.push({ href: '/dashboard/bookmarks', label: 'Bookmarks' });
       links.push({ href: '/dashboard', label: 'Dashboard' });
     }
 
@@ -217,7 +217,7 @@ export function Navbar() {
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer p-0">
                       <Link
-                        href="/profile"
+                        href="/dashboard/profile"
                         className={`flex w-full items-center px-2 py-1.5 text-sm ${
                           pathname === '/profile' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''
                         }`}
