@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Home, Shield, CheckCircle, TrendingUp, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,20 @@ import Image from 'next/image';
 
 export function HeroSection() {
     const [mounted, setMounted] = useState(false);
+    const router = useRouter();
+    const [location, setLocation] = useState('');
+    const [category, setCategory] = useState('');
 
     useEffect(() => {
         setMounted(true);
     }, []);
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        const params = new URLSearchParams();
+        if (location) params.set('search', location);
+        if (category && category !== 'all') params.set('category', category);
+        router.push(`/explore?${params.toString()}`);
+    };
 
     const stats = [
         { value: '12k+', label: 'READY PROPERTIES', icon: Home },
@@ -34,7 +45,7 @@ export function HeroSection() {
 
     return (
         <section className="relative overflow-hidden py-10 md:py-16 lg:py-20">
-            
+
             <div className="absolute inset-0 -z-10">
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-amber-500/5" />
                 <div className="absolute top-0 right-0 h-[500px] w-[500px] rounded-full bg-orange-500/10 blur-3xl" />
@@ -43,7 +54,7 @@ export function HeroSection() {
 
             <div className="mx-auto w-full max-w-[92%] sm:max-w-[88%] md:max-w-[80%] px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-8 md:gap-10 lg:grid-cols-2 lg:gap-12 items-center">
-                    
+
                     <div className="text-center lg:text-left">
 
                         <motion.div
@@ -56,7 +67,7 @@ export function HeroSection() {
                             TRUSTED BY 20,000+ HOMEOWNERS
                         </motion.div>
 
-                        
+
                         <motion.h1
                             initial={{ opacity: 0, y: 20 }}
                             animate={mounted ? { opacity: 1, y: 0 } : {}}
@@ -81,46 +92,51 @@ export function HeroSection() {
                             connect with top agents, and find a place you'll love.
                         </motion.p>
 
-                        
+
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={mounted ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.5, delay: 0.3 }}
                             className="mb-8 md:mb-10"
                         >
-                            <div className="flex flex-col gap-2 rounded-2xl border bg-background/80 p-1.5 backdrop-blur-sm sm:flex-row sm:items-center sm:p-2 md:gap-2.5 md:p-2.5">
-                                
-                                <div className="relative flex-1">
-                                    <MapPin className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:h-4 sm:w-4 md:left-3" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Your Location"
-                                        className="h-9 w-full border-0 bg-transparent pl-8 text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-10 sm:pl-9 sm:text-sm md:h-11"
-                                    />
-                                </div>
+                            <form onSubmit={handleSearch}>
+                                <div className="flex flex-col gap-2 rounded-2xl border bg-background/80 p-1.5 backdrop-blur-sm sm:flex-row sm:items-center sm:p-2 md:gap-2.5 md:p-2.5">
+                                    {/* লোকেশন ইনপুট – value ও onChange যোগ */}
+                                    <div className="relative flex-1">
+                                        <MapPin className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:h-4 sm:w-4 md:left-3" />
+                                        <Input
+                                            type="text"
+                                            placeholder="Your Location"
+                                            value={location}
+                                            onChange={(e) => setLocation(e.target.value)}
+                                            className="h-9 w-full border-0 bg-transparent pl-8 text-xs focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-10 sm:pl-9 sm:text-sm md:h-11"
+                                        />
+                                    </div>
 
-                                
-                                <div className="relative flex-1">
-                                    <Home className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:h-4 sm:w-4 md:left-3" />
-                                    <Select>
-                                        <SelectTrigger className="h-9 w-full border-0 bg-transparent pl-8 py-5 text-xs focus:ring-0 focus:ring-offset-0 sm:h-10 sm:pl-9 sm:text-sm md:h-11">
-                                            <SelectValue placeholder="Select PROPERTY TYPE" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Types</SelectItem>
-                                            <SelectItem value="sale">For Sale</SelectItem>
-                                            <SelectItem value="rent">For Rent</SelectItem>
-                                            <SelectItem value="semi-furnished">Semi-Furnished</SelectItem>
-                                            <SelectItem value="furnished">Furnished</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                    {/* ক্যাটাগরি সিলেক্ট – value ও onValueChange যোগ */}
+                                    <div className="relative flex-1">
+                                        <Home className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:h-4 sm:w-4 md:left-3" />
+                                        <Select value={category} onValueChange={setCategory}>
+                                            <SelectTrigger className="h-9 w-full border-0 bg-transparent pl-8 py-5 text-xs focus:ring-0 focus:ring-offset-0 sm:h-10 sm:pl-9 sm:text-sm md:h-11">
+                                                <SelectValue placeholder="Select PROPERTY TYPE" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Types</SelectItem>
+                                                <SelectItem value="sale">For Sale</SelectItem>
+                                                <SelectItem value="rent">For Rent</SelectItem>
+                                                <SelectItem value="semi-furnished">Semi-Furnished</SelectItem>
+                                                <SelectItem value="furnished">Furnished</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                                <Button className="h-9 w-full bg-orange-500 text-xs font-semibold text-white hover:bg-orange-600 sm:h-10 sm:w-auto sm:px-4 sm:text-sm md:px-6">
-                                    <Search className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
-                                    Search
-                                </Button>
-                            </div>
+                                    {/* সার্চ বাটন – type="submit" আছে, তাই কাজ করবে */}
+                                    <Button type="submit" className="h-9 w-full bg-orange-500 text-xs font-semibold text-white hover:bg-orange-600 sm:h-10 sm:w-auto sm:px-4 sm:text-sm md:px-6">
+                                        <Search className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
+                                        Search
+                                    </Button>
+                                </div>
+                            </form>
                         </motion.div>
 
                         <motion.div

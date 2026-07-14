@@ -8,7 +8,7 @@ import { FAQSection } from "@/components/home/FAQSection";
 export default function Home() {
   return (
     <main>
-      <HeroSection />
+      <HeroSection/>
       <FeaturesSection />
       <CategoriesSection />
       <FeaturedListings />
