@@ -72,43 +72,39 @@ export function Navbar() {
 
   const isLoggedIn = !!user;
 
-  // Main nav links (About removed)
+  // Main nav links (without icons)
   const navLinks = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/explore', label: 'Explore', icon: Compass },
-    { href: '/contact', label: 'Contact', icon: Phone },
+    { href: '/', label: 'Home' },
+    { href: '/explore', label: 'Explore' },
+    { href: '/contact', label: 'Contact' },
   ];
 
-  // Role‑based extra links for logged‑in users (used in both desktop & mobile)
+  // Role‑based extra links for the navbar (without icons)
   const protectedLinks = useMemo(() => {
     if (!isLoggedIn) return [];
     const links = [];
 
-    // Buyer gets Bookmarks and Dashboard in the nav bar
     if (user?.role === 'buyer') {
-      links.push({ href: '/bookmarks', label: 'Bookmarks', icon: Bookmark });
-      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
+      links.push({ href: '/bookmarks', label: 'Bookmarks' });
+      links.push({ href: '/dashboard', label: 'Dashboard' });
     }
 
-    // Seller / Admin get property management links
-    if (user?.role === 'seller' || user?.role === 'admin') {
-      links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
-      links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
+    if (user?.role === 'seller') {
+      links.push({ href: '/items/add', label: 'Add Property' });
+      links.push({ href: '/items/manage', label: 'My Listings' });
     }
 
-    // Admin only
     if (user?.role === 'admin') {
-      links.push({ href: '/admin/dashboard', label: 'Admin Panel', icon: Settings });
+      links.push({ href: '/items/manage', label: 'My Listings' });
     }
 
     return links;
   }, [isLoggedIn, user]);
 
-  // Build the combined list for desktop nav (no duplicates)
+  // Combine all navbar links (no icons)
   const desktopNavLinks = useMemo(() => {
     const all = [...navLinks];
     if (isLoggedIn) {
-      // Avoid adding duplicate Dashboard/Bookmarks if already present
       const existingHrefs = new Set(all.map(link => link.href));
       for (const link of protectedLinks) {
         if (!existingHrefs.has(link.href)) {
@@ -134,33 +130,30 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto w-full max-w-[80%] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
               BariBazar
             </span>
           </Link>
 
-          {/* Desktop nav (no duplicates) */}
+          {/* Desktop nav - no icons */}
           <nav className="hidden md:flex items-center space-x-6">
-            {desktopNavLinks.map(({ href, label, icon: Icon }) => {
+            {desktopNavLinks.map(({ href, label }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-orange-500 ${
+                  className={`text-sm font-medium transition-colors hover:text-orange-500 ${
                     isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
                   {label}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Right side */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             {isLoggedIn && (user?.role === 'seller' || user?.role === 'admin') && (
               <Link href="/items/add" className="hidden sm:inline-block">
@@ -303,22 +296,21 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu (no duplicates) */}
+      {/* Mobile menu - no icons */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur">
           <div className="mx-auto w-full max-w-[80%] px-4 py-3 space-y-2">
-            {desktopNavLinks.map(({ href, label, icon: Icon }) => {
+            {desktopNavLinks.map(({ href, label }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`flex items-center gap-2 py-2 text-sm font-medium ${
+                  className={`block py-2 text-sm font-medium ${
                     isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
                   {label}
                 </Link>
               );
@@ -326,22 +318,21 @@ export function Navbar() {
 
             {isLoggedIn && (
               <>
-                {/* Add additional mobile-only items if needed, but avoid duplicates */}
                 <Link
                   href="/profile"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-2 py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
+                  className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
                 >
-                  <User className="h-4 w-4" /> Profile
+                  Profile
                 </Link>
                 <button
                   onClick={() => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 w-full text-left py-2 text-sm font-medium text-red-600"
+                  className="block w-full text-left py-2 text-sm font-medium text-red-600"
                 >
-                  <LogOut className="h-4 w-4" /> Sign Out
+                  Sign Out
                 </button>
               </>
             )}
