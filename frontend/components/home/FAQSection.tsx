@@ -81,7 +81,7 @@ export function FAQSection() {
               transition={{ duration: 0.5, delay: 0.1 }}
               viewport={{ once: true }}
             >
-              <Accordion type="single" className="w-full">
+              <Accordion type="single" collapsible className="w-full" {...({} as any)}>
                 {faqs.map((faq, index) => (
                   <AccordionItem key={index} value={`item-${index}`}>
                     <AccordionTrigger className="text-left text-sm sm:text-base font-medium hover:text-orange-500 transition-colors">
