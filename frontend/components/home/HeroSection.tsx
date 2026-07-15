@@ -116,7 +116,7 @@ export function HeroSection() {
                                     {/* ক্যাটাগরি সিলেক্ট – value ও onValueChange যোগ */}
                                     <div className="relative flex-1">
                                         <Home className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground sm:h-4 sm:w-4 md:left-3" />
-                                        <Select value={category} onValueChange={setCategory}>
+                                        <Select value={category} onValueChange={(value) => setCategory(value || '')}>
                                             <SelectTrigger className="h-9 w-full border-0 bg-transparent pl-8 py-5 text-xs focus:ring-0 focus:ring-offset-0 sm:h-10 sm:pl-9 sm:text-sm md:h-11">
                                                 <SelectValue placeholder="Select PROPERTY TYPE" />
                                             </SelectTrigger>
