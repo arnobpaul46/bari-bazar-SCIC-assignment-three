@@ -12,7 +12,20 @@ dotenv.config();
 
 const app = express();
 
-// ✅ ডাটাবেজ কানেকশন মিডলওয়্যার (প্রতি রিকোয়েস্টের আগে চেক করবে)
+// ✅ CORS – নির্দিষ্ট অরিজিন, credentials সহ
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://bari-bazar-scic-assignment-three-fr.vercel.app',
+  // ব্যাকএন্ডের নিজের URL যোগ করবেন না – শুধু ফ্রন্টএন্ডের URL
+];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
+app.use(express.json()); // একবারই যথেষ্ট
+
+// ✅ ডাটাবেজ কানেকশন মিডলওয়্যার (Vercel-এর জন্য)
 let mongooseConnection = false;
 const connectMiddleware = async (req: any, res: any, next: any) => {
   try {
@@ -28,10 +41,7 @@ const connectMiddleware = async (req: any, res: any, next: any) => {
   }
 };
 
-app.use(cors());
-app.use(express.json());
-
-// ✅ সব রাউটে মিডলওয়্যার প্রয়োগ করুন
+// ✅ সব রাউটে মিডলওয়্যার প্রয়োগ
 app.use('/api/auth', connectMiddleware, authRoutes);
 app.use('/api/items', connectMiddleware, itemRoutes);
 app.use('/api/admin', connectMiddleware, adminRoutes);
@@ -42,4 +52,13 @@ app.get('/', (req, res) => {
   res.send('🚀 BariBazar Backend Server is Running Successfully!');
 });
 
+// ✅ লোকাল ডেভেলপমেন্টের জন্য
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = Number(process.env.PORT) || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  });
+}
+
+// ✅ Vercel-এর জন্য এক্সপোর্ট
 export default app;
