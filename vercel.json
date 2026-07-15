@@ -1,19 +1,5 @@
 {
-  "builds": [
-    {
-      "src": "frontend/**",
-      "use": "@vercel/next"
-    },
-    {
-      "src": "backend/**",
-      "use": "@vercel/node",
-      "config": {
-        "tsconfigPath": "backend/tsconfig.vercel.json"
-      }
-    }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "backend/$1" },
-    { "src": "/(.*)", "dest": "frontend/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
   ]
 }
