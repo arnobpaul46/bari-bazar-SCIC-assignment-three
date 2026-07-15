@@ -1,17 +1,16 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard,
-  Bookmark,
-  Package,
   User,
   PlusCircle,
   List,
-  Settings,
+  Package,
   LogOut,
+  Users,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import api from '@/lib/axios';
@@ -24,7 +23,7 @@ interface User {
   image?: string;
 }
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -34,6 +33,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const fetchUser = async () => {
       try {
         const res = await api.get('/auth/me');
+        if (res.data.user?.role !== 'admin') {
+          router.push('/');
+          return;
+        }
         setUser(res.data.user);
       } catch {
         router.push('/login');
@@ -50,40 +53,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     router.refresh();
   };
 
-  // ✅ রোল অনুযায়ী নেভ লিংক
-  const getNavLinks = () => {
-    if (!user) return [];
-
-    const links: { href: string; label: string; icon: any }[] = [];
-
-    // Dashboard – রোল অনুযায়ী আলাদা
-    if (user.role === 'admin') {
-      links.push({ href: '/admin/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard });
-      links.push({ href: '/admin/users', label: 'Users', icon: User });
-      links.push({ href: '/items/add', label: 'Add Properties', icon: PlusCircle });
-      links.push({ href: '/items/manage', label: 'All Listings', icon: List });
-      links.push({ href: '/dashboard/orders', label: 'Orders', icon: Package });
-    } else if (user.role === 'buyer') {
-      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
-      links.push({ href: '/dashboard/bookmarks', label: 'Bookmarks', icon: Bookmark });
-      links.push({ href: '/dashboard/orders', label: 'Orders', icon: Package });
-    } else if (user.role === 'seller') {
-      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
-      links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
-      links.push({ href: '/items/manage', label: 'My Listings', icon: List });
-    }
-
-    // Profile – রোল অনুযায়ী আলাদা
-    if (user.role === 'admin') {
-      links.push({ href: '/admin/profile', label: 'Admin Profile', icon: User });
-    } else {
-      links.push({ href: '/dashboard/profile', label: 'Profile', icon: User });
-    }
-
-    return links;
-  };
-
-  const navLinks = getNavLinks();
+  const navLinks = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/users', label: 'Users', icon: Users },
+    { href: '/items/add', label: 'Add Properties', icon: PlusCircle },
+    { href: '/items/manage', label: 'All Listings', icon: List },
+    { href: '/admin/orders', label: 'Orders', icon: Package },
+    { href: '/admin/profile', label: 'Admin Profile', icon: User },
+  ];
 
   if (loading) {
     return (
@@ -100,12 +77,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex w-64 flex-col border-r bg-background/50 h-screen">
         <div className="flex items-center gap-3 border-b p-4 flex-shrink-0">
           <Avatar className="h-10 w-10">
-            <AvatarImage
-              src={
-                user.image ||
-                `https://ui-avatars.com/api/?name=${user.name}&background=f97316&color=fff`
-              }
-            />
+            <AvatarImage src={user.image || `https://ui-avatars.com/api/?name=${user.name}&background=f97316&color=fff`} />
             <AvatarFallback>{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -116,9 +88,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-hide">
           {navLinks.map((link) => {
-            const isActive =
-              link.href === pathname ||
-              (link.href !== '/dashboard' && pathname?.startsWith(link.href));
+            const isActive = link.href === pathname || pathname?.startsWith(link.href);
             return (
               <Link
                 key={link.href}
@@ -129,8 +99,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
-                <link.icon className="h-5 w-5 flex-shrink-0" />
-                <span className="truncate">{link.label}</span>
+                <link.icon className="h-5 w-5" />
+                {link.label}
               </Link>
             );
           })}

@@ -17,12 +17,12 @@ export default function OrdersPage() {
     try {
       const res = await api.get('/orders');
       setOrders(res.data.orders || []);
-      // প্রতিটি pending অর্ডারের জন্য অবশিষ্ট সময় ক্যালকুলেট
+      // প্রতিটি pending অর্ডারের জন্য অবশিষ্ট সময় ক্যালকুলেট (২ মিনিট = ১২০ সেকেন্ড)
       const initialTimers: Record<string, number> = {};
       res.data.orders?.forEach((order: any) => {
         if (order.status === 'pending') {
           const elapsed = (Date.now() - new Date(order.createdAt).getTime()) / 1000;
-          const remaining = Math.max(0, 600 - elapsed); // 600 সেকেন্ড = 10 মিনিট
+          const remaining = Math.max(0, 120 - elapsed); // ✅ ২ মিনিট (পূর্বে ১০ মিনিট ছিল)
           initialTimers[order._id] = remaining;
         }
       });

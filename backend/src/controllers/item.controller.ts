@@ -8,7 +8,7 @@ import { AuthRequest } from '../middlewares/auth';
 // ============================================
 export const addItem = async (req: AuthRequest, res: Response) => {
   try {
-    
+
     const user = req.user;
     if (user.role !== 'seller' && user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Only sellers and admins can add properties.' });
@@ -55,7 +55,7 @@ export const addItem = async (req: AuthRequest, res: Response) => {
       reviews: [],
     });
 
-    
+
     await newItem.save();
 
     res.status(201).json({
@@ -73,44 +73,47 @@ export const addItem = async (req: AuthRequest, res: Response) => {
 // ============================================
 // get item api 
 // ============================================
+// console.log('🔍 Query params:', req.query);
+// console.log('🔍 Filter object:', filter);
 
 export const getAllItems = async (req: Request, res: Response) => {
   try {
 
     const {
-      search = '',          
-      category = '',        
-      minPrice,             
-      maxPrice,             
-      sort = 'newest',      
-      page = 1,             
-      limit = 8,            
+      search = '',
+      category = '',
+      minPrice,
+      maxPrice,
+      sort = 'newest',
+      page = 1,
+      limit = 8,
     } = req.query;
 
-    
-    const filter: any = { status: 'active' }; 
+    console.log('🔍 Query params:', req.query);
+    const filter: any = {
+      status: { $in: ['active', 'sold'] } // active ও sold দুটোই দেখাবে
+    };
 
-    
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },     
+        { title: { $regex: search, $options: 'i' } },
         { location: { $regex: search, $options: 'i' } },
       ];
     }
 
-    
+
     if (category) {
       filter.category = category;
     }
 
-    
+
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    
+
     let sortOption: any = {};
     switch (sort) {
       case 'price_asc':
@@ -128,23 +131,23 @@ export const getAllItems = async (req: Request, res: Response) => {
         break;
     }
 
-    
+
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 8;
     const skip = (pageNum - 1) * limitNum;
 
-    
+
     const [items, total] = await Promise.all([
       Item.find(filter)
         .sort(sortOption)
         .skip(skip)
         .limit(limitNum)
-        .populate('sellerId', 'name email') 
-        .lean(), 
-      Item.countDocuments(filter), 
+        .populate('sellerId', 'name email')
+        .lean(),
+      Item.countDocuments(filter),
     ]);
 
-    
+
     res.status(200).json({
       success: true,
       results: items.length,
@@ -166,26 +169,26 @@ export const getAllItems = async (req: Request, res: Response) => {
 
 export const getSingleItem = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params; 
+    const { id } = req.params;
 
     const item = await Item.findById(id)
-      .populate('sellerId', 'name email') 
-      .populate('reviews.userId', 'name') 
+      .populate('sellerId', 'name email')
+      .populate('reviews.userId', 'name')
       .lean();
 
-    
+
     if (!item) {
       return res.status(404).json({ message: 'Property not found' });
     }
 
-    
+
     const relatedItems = await Item.find({
       category: item.category,
-      _id: { $ne: id }, 
-      status: 'active', 
+      _id: { $ne: id },
+      status: 'active',
     })
-      .limit(4) 
-      .select('title price location imageUrl rating') 
+      .limit(4)
+      .select('title price location imageUrl rating')
       .lean();
 
     res.status(200).json({
@@ -205,7 +208,7 @@ export const getSingleItem = async (req: Request, res: Response) => {
 
 export const deleteItem = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;          
+    const { id } = req.params;
     const user = req.user;
 
 

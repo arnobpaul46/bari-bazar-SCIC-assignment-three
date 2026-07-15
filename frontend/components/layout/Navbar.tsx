@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Moon, Sun, Menu, X, User, PlusCircle, LayoutDashboard,
-  LogOut, Bookmark, Settings, Home, Compass, Phone
+  LogOut, Bookmark, Settings, Home, Compass, Phone, Info
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -72,49 +72,50 @@ export function Navbar() {
 
   const isLoggedIn = !!user;
 
-  // Main nav links (without icons)
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/explore', label: 'Explore' },
-    { href: '/contact', label: 'Contact' },
+  // ✅ পাবলিক নেভ (সবাই দেখবে – Home, Explore, About, Contact)
+  const publicNavLinks = [
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/explore', label: 'Explore', icon: Compass },
+    { href: '/about', label: 'About', icon: Info },
+    { href: '/contact', label: 'Contact', icon: Phone },
   ];
 
-  // Role‑based extra links for the navbar (without icons)
-  const protectedLinks = useMemo(() => {
+  // ✅ ড্রপডাউনের জন্য রোল-ভিত্তিক লিংক
+  const dropdownLinks = useMemo(() => {
     if (!isLoggedIn) return [];
-    const links = [];
+    const links: { href: string; label: string; icon: any }[] = [];
 
     if (user?.role === 'buyer') {
-      links.push({ href: '/dashboard/bookmarks', label: 'Bookmarks' });
-      links.push({ href: '/dashboard', label: 'Dashboard' });
+      links.push({ href: '/dashboard/bookmarks', label: 'Bookmarks', icon: Bookmark });
+      links.push({ href: '/dashboard/orders', label: 'Orders', icon: LayoutDashboard });
+      links.push({ href: '/dashboard/profile', label: 'Profile', icon: User });
     }
 
     if (user?.role === 'seller') {
-      links.push({ href: '/items/add', label: 'Add Property' });
-      links.push({ href: '/items/manage', label: 'My Listings' });
+      links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
+      links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
+      links.push({ href: '/dashboard/profile', label: 'Profile', icon: User });
     }
 
     if (user?.role === 'admin') {
-      links.push({ href: '/items/manage', label: 'My Listings' });
+      links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
+      links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
+      links.push({ href: '/admin/dashboard', label: 'Admin Panel', icon: Settings });
+      links.push({ href: '/admin/profile', label: 'Admin Profile', icon: User });
     }
 
     return links;
   }, [isLoggedIn, user]);
 
-  // Combine all navbar links (no icons)
-  const desktopNavLinks = useMemo(() => {
-    const all = [...navLinks];
+  // ✅ লগইন অবস্থায় মেইন নেভে Dashboard যোগ হবে
+  const mainNavLinks = useMemo(() => {
+    const links = [...publicNavLinks];
     if (isLoggedIn) {
-      const existingHrefs = new Set(all.map(link => link.href));
-      for (const link of protectedLinks) {
-        if (!existingHrefs.has(link.href)) {
-          all.push(link);
-          existingHrefs.add(link.href);
-        }
-      }
+      const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : '/dashboard';
+      links.push({ href: dashboardHref, label: 'Dashboard', icon: LayoutDashboard });
     }
-    return all;
-  }, [navLinks, isLoggedIn, protectedLinks]);
+    return links;
+  }, [isLoggedIn, user?.role]);
 
   if (loading) {
     return (
@@ -136,18 +137,18 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav - no icons */}
+          {/* ✅ ডেস্কটপ নেভ – পাবলিক লিংক + লগইন করলে Dashboard */}
           <nav className="hidden md:flex items-center space-x-6">
-            {desktopNavLinks.map(({ href, label }) => {
+            {mainNavLinks.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`text-sm font-medium transition-colors hover:text-orange-500 ${
-                    isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                  }`}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-orange-500 ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
+                    }`}
                 >
+                  {Icon && <Icon className="h-4 w-4" />}
                   {label}
                 </Link>
               );
@@ -186,6 +187,7 @@ export function Navbar() {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-56">
+                  {/* ইউজার ইনফো */}
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-0.5">
                       <p className="text-sm font-medium">{user?.name}</p>
@@ -195,69 +197,22 @@ export function Navbar() {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuGroup>
-                    <DropdownMenuItem className="cursor-pointer p-0">
-                      <Link
-                        href={
-                          user?.role === 'admin'
-                            ? '/admin/dashboard'
-                            : user?.role === 'seller'
-                            ? '/seller/dashboard'
-                            : '/dashboard'
-                        }
-                        className={`flex w-full items-center px-2 py-1.5 text-sm ${
-                          pathname.startsWith('/dashboard') ||
-                          pathname.startsWith('/admin/dashboard') ||
-                          pathname.startsWith('/seller/dashboard')
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30'
-                            : ''
-                        }`}
-                      >
-                        <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer p-0">
-                      <Link
-                        href="/dashboard/profile"
-                        className={`flex w-full items-center px-2 py-1.5 text-sm ${
-                          pathname === '/profile' ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''
-                        }`}
-                      >
-                        <User className="mr-2 h-4 w-4" /> My Profile
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuGroup>
-                    {user?.role === 'buyer' && (
-                      <DropdownMenuItem className="cursor-pointer p-0">
-                        <Link href="/bookmarks" className="flex w-full items-center px-2 py-1.5 text-sm">
-                          <Bookmark className="mr-2 h-4 w-4" /> Bookmarks
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    {(user?.role === 'seller' || user?.role === 'admin') && (
-                      <>
-                        <DropdownMenuItem className="cursor-pointer p-0">
-                          <Link href="/items/manage" className="flex w-full items-center px-2 py-1.5 text-sm">
-                            <LayoutDashboard className="mr-2 h-4 w-4" /> My Listings
+                    {dropdownLinks.map((link) => {
+                      const Icon = link.icon;
+                      const isActive = pathname === link.href || pathname.startsWith(link.href);
+                      return (
+                        <DropdownMenuItem key={link.href} className="cursor-pointer p-0">
+                          <Link
+                            href={link.href}
+                            className={`flex w-full items-center px-2 py-1.5 text-sm ${isActive ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''
+                              }`}
+                          >
+                            {Icon && <Icon className="mr-2 h-4 w-4" />}
+                            {link.label}
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer p-0">
-                          <Link href="/items/add" className="flex w-full items-center px-2 py-1.5 text-sm">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Add Property
-                          </Link>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {user?.role === 'admin' && (
-                      <DropdownMenuItem className="cursor-pointer p-0">
-                        <Link href="/admin/dashboard" className="flex w-full items-center px-2 py-1.5 text-sm">
-                          <Settings className="mr-2 h-4 w-4" /> Admin Panel
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
+                      );
+                    })}
                   </DropdownMenuGroup>
 
                   <DropdownMenuSeparator />
@@ -296,20 +251,19 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu - no icons */}
+      {/* ✅ মোবাইল মেনু */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur">
           <div className="mx-auto w-full max-w-[80%] px-4 py-3 space-y-2">
-            {desktopNavLinks.map(({ href, label }) => {
+            {mainNavLinks.map(({ href, label }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`block py-2 text-sm font-medium ${
-                    isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                  }`}
+                  className={`block py-2 text-sm font-medium ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
+                    }`}
                 >
                   {label}
                 </Link>
@@ -318,13 +272,16 @@ export function Navbar() {
 
             {isLoggedIn && (
               <>
-                <Link
-                  href="/profile"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
-                >
-                  Profile
-                </Link>
+                {dropdownLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
                 <button
                   onClick={() => {
                     handleLogout();

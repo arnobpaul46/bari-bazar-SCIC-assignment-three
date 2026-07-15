@@ -10,17 +10,20 @@ import { toast } from 'sonner';
 
 export default function BookmarksPage() {
   const router = useRouter();
-  const [bookmarks, setBookmarks] = useState([]);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
         const res = await api.get('/bookmarks');
-        setBookmarks(res.data.bookmarks || []);
+        // ✅ নিশ্চিত করুন যে ডেটা অ্যারে এবং প্রতিটি আইটেমের _id আছে
+        const items = res.data.bookmarks || [];
+        setBookmarks(items.filter((item: any) => item && item._id));
       } catch (error) {
         console.error('Error fetching bookmarks:', error);
         toast.error('Failed to load bookmarks');
+        setBookmarks([]);
       } finally {
         setLoading(false);
       }
@@ -29,6 +32,7 @@ export default function BookmarksPage() {
   }, []);
 
   const removeBookmark = async (itemId: string) => {
+    if (!itemId) return;
     try {
       await api.delete(`/bookmarks/${itemId}`);
       setBookmarks(bookmarks.filter((b: any) => b._id !== itemId));
@@ -72,7 +76,7 @@ export default function BookmarksPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {bookmarks.map((item: any) => (
-            <div key={item._id} className="relative">
+            <div key={item._id || Math.random().toString()} className="relative">
               <ItemCard item={item} />
               <Button
                 variant="destructive"

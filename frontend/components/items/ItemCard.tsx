@@ -14,10 +14,13 @@ interface ItemCardProps {
     imageUrl: string;
     rating: number;
     category: string;
+    status?: 'active' | 'sold' | 'canceled'; // ✅ নতুন ফিল্ড
   };
 }
 
 export function ItemCard({ item }: ItemCardProps) {
+  const isSold = item.status === 'sold';
+
   return (
     <div className="group rounded-2xl border bg-background/50 overflow-hidden shadow-sm transition-all hover:shadow-lg hover:border-orange-500/50">
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -27,9 +30,16 @@ export function ItemCard({ item }: ItemCardProps) {
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        {/* ক্যাটাগরি ব্যাজ */}
         <span className="absolute top-3 left-3 rounded-full bg-orange-500 px-3 py-1 text-xs font-medium text-white capitalize">
           {item.category === 'sale' ? 'For Sale' : item.category === 'rent' ? 'For Rent' : item.category}
         </span>
+        {/* ✅ সোল্ড ব্যাজ (যদি status sold হয়) */}
+        {isSold && (
+          <span className="absolute top-3 right-3 rounded-full bg-red-600 px-3 py-1 text-xs font-medium text-white">
+            Sold
+          </span>
+        )}
       </div>
       <div className="p-4 space-y-3">
         <div>
@@ -40,7 +50,8 @@ export function ItemCard({ item }: ItemCardProps) {
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-lg font-bold text-orange-500">
+          {/* ✅ সোল্ড হলে দামের ওপর ক্রস মার্ক */}
+          <span className={`text-lg font-bold ${isSold ? 'text-muted-foreground line-through' : 'text-orange-500'}`}>
             ${item.price.toLocaleString()}
           </span>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
