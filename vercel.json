@@ -1,0 +1,12 @@
+{
+  "services": [
+    {
+      "source": "frontend",
+      "framework": "nextjs"
+    },
+    {
+      "source": "backend",
+      "framework": "express"
+    }
+  ]
+}

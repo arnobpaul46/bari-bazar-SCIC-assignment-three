@@ -26,21 +26,23 @@ app.get('/', (req, res) => {
   res.send('🚀 BariBazar Backend Server is Running Successfully!');
 });
 
-const startServer = async () => {
-  try {
-    await connectDB();
+// const startServer = async () => {
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    }).on('error', (err) => {
-      console.error('❌ Server failed to start:', err);
-      process.exit(1);
-    });
+//   try {
+//     await connectDB();
 
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-};
+//     app.listen(PORT, () => {
+//       console.log(`🚀 Server is running on http://localhost:${PORT}`);
+//     }).on('error', (err) => {
+//       console.error('❌ Server failed to start:', err);
+//       process.exit(1);
+//     });
 
-startServer();
+//   } catch (error) {
+//     console.error('❌ Failed to start server:', error);
+//     process.exit(1);
+//   }
+// };
+
+// startServer();
+export default app;
