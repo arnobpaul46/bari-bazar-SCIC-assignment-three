@@ -11,38 +11,35 @@ import orderRoutes from './routes/order.routes';
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 5000;
+
+// ✅ ডাটাবেজ কানেকশন মিডলওয়্যার (প্রতি রিকোয়েস্টের আগে চেক করবে)
+let mongooseConnection = false;
+const connectMiddleware = async (req: any, res: any, next: any) => {
+  try {
+    if (!mongooseConnection) {
+      await connectDB();
+      mongooseConnection = true;
+      console.log('✅ MongoDB connected');
+    }
+    next();
+  } catch (error) {
+    console.error('❌ MongoDB connection failed:', error);
+    res.status(500).json({ message: 'Database connection error' });
+  }
+};
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/auth', authRoutes);
 
-app.use('/api/items', itemRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/bookmarks', bookmarkRoutes);
-app.use('/api/orders', orderRoutes);
+// ✅ সব রাউটে মিডলওয়্যার প্রয়োগ করুন
+app.use('/api/auth', connectMiddleware, authRoutes);
+app.use('/api/items', connectMiddleware, itemRoutes);
+app.use('/api/admin', connectMiddleware, adminRoutes);
+app.use('/api/bookmarks', connectMiddleware, bookmarkRoutes);
+app.use('/api/orders', connectMiddleware, orderRoutes);
 
 app.get('/', (req, res) => {
   res.send('🚀 BariBazar Backend Server is Running Successfully!');
 });
 
-// const startServer = async () => {
-
-//   try {
-//     await connectDB();
-
-//     app.listen(PORT, () => {
-//       console.log(`🚀 Server is running on http://localhost:${PORT}`);
-//     }).on('error', (err) => {
-//       console.error('❌ Server failed to start:', err);
-//       process.exit(1);
-//     });
-
-//   } catch (error) {
-//     console.error('❌ Failed to start server:', error);
-//     process.exit(1);
-//   }
-// };
-
-// startServer();
 export default app;

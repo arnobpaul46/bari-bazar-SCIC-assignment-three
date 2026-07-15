@@ -1,21 +1,22 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend/"
+  "builds": [
+    {
+      "src": "frontend/**",
+      "use": "@vercel/next"
     },
-    "backend": {
-      "root": "backend/",
-      "entrypoint": "main:app"
+    {
+      "src": "backend/**",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": { "service": "backend" }
+      "src": "/api/(.*)",
+      "dest": "backend/$1"
     },
     {
-      "source": "/(.*)",
-      "destination": { "service": "frontend" }
+      "src": "/(.*)",
+      "dest": "frontend/$1"
     }
   ]
 }
