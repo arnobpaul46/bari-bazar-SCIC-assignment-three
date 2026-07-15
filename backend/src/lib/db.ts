@@ -22,7 +22,7 @@ export const connectDB = async () => {
     });
     
     console.log('✅ MongoDB Connected Successfully!');
-    console.log(`📦 Database Name: ${mongoose.connection.db.databaseName}`);
+    console.log(`📦 Database Name: ${mongoose.connection.db?.databaseName || 'N/A'}`);
     
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error);

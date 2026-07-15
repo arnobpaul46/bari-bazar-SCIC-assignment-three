@@ -11,7 +11,12 @@ declare global {
   }
 }
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
+export interface AuthRequest extends Request {
+  user?: any;
+}
+
+
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     console.log('🔍 [Auth] Middleware called');
     let token;
