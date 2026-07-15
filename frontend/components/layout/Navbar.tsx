@@ -142,6 +142,7 @@ export function Navbar() {
       <div className="mx-auto w-full max-w-[80%] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
+            <img src="/logo.svg" alt="Logo" className="h-10 w-10 object-cover" />
             <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-500 to-amber-600 bg-clip-text text-transparent">
               BariBazar
             </span>
