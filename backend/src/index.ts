@@ -5,6 +5,8 @@ import { connectDB } from './lib/db';
 import authRoutes from './routes/auth.routes';
 import itemRoutes from './routes/item.routes';
 import adminRoutes from './routes/admin.routes';
+import bookmarkRoutes from './routes/bookmark.routes';
+import orderRoutes from './routes/order.routes';
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/items', itemRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
   res.send('🚀 BariBazar Backend Server is Running Successfully!');

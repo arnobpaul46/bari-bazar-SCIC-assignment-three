@@ -4,11 +4,29 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Bed, Bath, Home, ArrowLeft, Star, User, Phone, Mail, Heart, ShoppingBag } from 'lucide-react';
+import { MapPin, Bed, Bath, Home, ArrowLeft, Star, User, Phone, Mail, Heart, ShoppingBag, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ItemCard } from '@/components/items/ItemCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
+
+// Helper to decode JWT and get role
+function getRoleFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
 
 // Types
 interface Item {
@@ -23,7 +41,7 @@ interface Item {
   bedrooms: number;
   bathrooms: number;
   rating: number;
-  status: string;
+  status: 'active' | 'sold' | 'canceled';
   sellerId: {
     _id: string;
     name: string;
@@ -33,7 +51,6 @@ interface Item {
   createdAt: string;
 }
 
-// Skeleton Loader
 const DetailsSkeleton = () => (
   <div className="max-w-[80%] mx-auto px-4 py-8">
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -60,35 +77,63 @@ export default function ItemDetailsPage() {
   const [relatedItems, setRelatedItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Auth & status states
   const [user, setUser] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isBuyer, setIsBuyer] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isOrdered, setIsOrdered] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // ইউজার চেক
+  // ✅ Use token to determine logged in and role (no /auth/me dependency)
   useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('token='))
-          ?.split('=')[1];
-        if (token) {
-          const res = await api.get('/auth/me');
-          setUser(res.data.user);
-          setIsLoggedIn(true);
-          setIsBuyer(res.data.user?.role === 'buyer');
-        }
-      } catch {
-        setIsLoggedIn(false);
-        setIsBuyer(false);
-      }
-    };
-    checkUser();
-  }, []);
+    const token = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('token='))
+      ?.split('=')[1];
 
+    if (token) {
+      setIsLoggedIn(true);
+      const role = getRoleFromToken(token);
+      const isBuyerRole = role === 'buyer';
+      setIsBuyer(isBuyerRole);
+
+      // Fetch bookmark & order status only if buyer and id exists
+      if (isBuyerRole && id) {
+        Promise.all([
+          api.get(`/bookmarks/check/${id}`).catch(() => ({ data: { bookmarked: false } })),
+          api.get(`/orders/check/${id}`).catch(() => ({ data: { ordered: false } }))
+        ])
+        .then(([bookmarkRes, orderRes]) => {
+          setIsBookmarked(bookmarkRes.data.bookmarked);
+          setIsOrdered(orderRes.data.ordered);
+        })
+        .catch(() => {
+          setIsBookmarked(false);
+          setIsOrdered(false);
+        });
+      } else {
+        setIsBookmarked(false);
+        setIsOrdered(false);
+      }
+
+      // Optional: also fetch user details for display (name/email) but not required for role
+      api.get('/auth/me')
+        .then(res => setUser(res.data.user))
+        .catch(() => {});
+    } else {
+      setIsLoggedIn(false);
+      setIsBuyer(false);
+      setIsBookmarked(false);
+      setIsOrdered(false);
+    }
+  }, [id]);
+
+  // Fetch item details
   useEffect(() => {
     if (!id) return;
-
     const fetchItem = async () => {
       try {
         setLoading(true);
@@ -101,59 +146,94 @@ export default function ItemDetailsPage() {
         }
       } catch (err: any) {
         console.error('Error fetching item:', err);
-        if (err.response?.status === 404) {
-          setError('Property not found');
-        } else {
-          setError('Failed to load property details');
-        }
+        setError('Failed to load property details');
       } finally {
         setLoading(false);
       }
     };
-
     fetchItem();
   }, [id]);
 
   const handleContactSeller = () => {
-    toast.success('📩 Seller will contact you shortly!', {
-      description: 'Check your email and phone for updates.',
-      duration: 4000,
-    });
+    toast.success('📩 Seller will contact you shortly!');
   };
 
-  const handleBookmark = () => {
+  const handleBookmark = async () => {
     if (!isLoggedIn) {
-      toast.error('Please login to bookmark properties', {
-        description: 'You need to be logged in as a buyer.',
-      });
+      router.push('/login');
       return;
     }
-    toast.success('❤️ Added to bookmarks!', {
-      description: 'You can view all bookmarks in your dashboard.',
-      duration: 3000,
-    });
+    if (!isBuyer) {
+      toast.error('Only buyers can bookmark properties.');
+      return;
+    }
+    try {
+      setActionLoading(true);
+      if (isBookmarked) {
+        await api.delete(`/bookmarks/${id}`);
+        setIsBookmarked(false);
+        toast.success('Removed from bookmarks');
+      } else {
+        await api.post('/bookmarks', { itemId: id });
+        setIsBookmarked(true);
+        toast.success('Added to bookmarks');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Bookmark action failed');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleBuyNow = () => {
     if (!isLoggedIn) {
-      toast.error('Please login to purchase', {
-        description: 'You need to be logged in as a buyer.',
-      });
+      router.push('/login');
       return;
     }
-    toast.info('💳 Payment gateway coming soon!', {
-      description: 'We are working on integrating secure payments.',
-      duration: 4000,
-    });
+    if (!isBuyer) {
+      toast.error('Only buyers can purchase properties.');
+      return;
+    }
+    if (item?.status === 'sold') {
+      toast.error('This property has been sold already.');
+      return;
+    }
+    if (isOrdered) {
+      toast.error('You already have an order for this property.');
+      return;
+    }
+    setShowOrderModal(true);
+  };
+
+  const confirmOrder = async () => {
+    try {
+      setActionLoading(true);
+      const res = await api.post('/orders', { itemId: id });
+      if (res.status === 201) {
+        setIsOrdered(true);
+        setShowOrderModal(false);
+        toast.success('🎉 Order placed successfully!', {
+          action: {
+            label: 'View Orders',
+            onClick: () => router.push('/dashboard/orders'),
+          },
+        });
+        setItem(prev => prev ? { ...prev, status: 'sold' } : null);
+        router.push('/dashboard/orders');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Order failed');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) return <DetailsSkeleton />;
-
   if (error || !item) {
     return (
       <div className="max-w-[80%] mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold mb-2">Oops! Property not found</h2>
-        <p className="text-muted-foreground mb-6">{error || 'The property you are looking for does not exist.'}</p>
+        <p className="text-muted-foreground mb-6">{error || 'The property does not exist.'}</p>
         <Link href="/explore">
           <Button className="bg-orange-500 hover:bg-orange-600 text-white">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Explore
@@ -171,7 +251,7 @@ export default function ItemDetailsPage() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Image & Details */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Main Image */}
           <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-muted">
@@ -182,12 +262,15 @@ export default function ItemDetailsPage() {
               className="object-cover"
               priority
             />
-            <span className="absolute top-4 left-4 rounded-full bg-orange-500 px-3 py-1 text-xs font-medium text-white capitalize">
-              {item.category === 'sale' ? 'For Sale' : item.category === 'rent' ? 'For Rent' : item.category}
-            </span>
+            {item.status === 'sold' ? (
+              <span className="absolute top-4 left-4 rounded-full bg-red-600 px-3 py-1 text-xs font-medium text-white">Sold</span>
+            ) : (
+              <span className="absolute top-4 left-4 rounded-full bg-orange-500 px-3 py-1 text-xs font-medium text-white capitalize">
+                {item.category === 'sale' ? 'For Sale' : item.category === 'rent' ? 'For Rent' : item.category}
+              </span>
+            )}
           </div>
 
-          {/* Title & Price */}
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">{item.title}</h1>
@@ -197,27 +280,19 @@ export default function ItemDetailsPage() {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-bold text-orange-500">
+              <span className={`text-3xl font-bold ${item.status === 'sold' ? 'text-muted-foreground line-through' : 'text-orange-500'}`}>
                 ${item.price.toLocaleString()}
               </span>
-              <p className="text-xs text-muted-foreground">Fixed Price</p>
+              {item.status === 'sold' && <p className="text-xs text-red-500">Sold</p>}
             </div>
           </div>
 
-          {/* Short Description */}
-          <p className="text-muted-foreground text-sm border-l-4 border-orange-500 pl-4">
-            {item.shortDesc}
-          </p>
-
-          {/* Full Description */}
+          <p className="text-muted-foreground text-sm border-l-4 border-orange-500 pl-4">{item.shortDesc}</p>
           <div>
             <h2 className="text-xl font-semibold mb-2">Description</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-              {item.fullDesc}
-            </p>
+            <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">{item.fullDesc}</p>
           </div>
 
-          {/* Specifications */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="rounded-xl border bg-background/50 p-4 text-center">
               <Home className="h-5 w-5 mx-auto text-orange-500 mb-1" />
@@ -242,13 +317,11 @@ export default function ItemDetailsPage() {
           </div>
         </div>
 
-        {/* Right Column: Sidebar */}
+        {/* Right Column */}
         <div className="space-y-6">
           {/* Seller Info */}
           <div className="rounded-2xl border bg-background/50 p-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
-              Seller Information
-            </h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Seller Information</h3>
             <div className="flex items-center gap-4">
               <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-orange-100">
                 {item.sellerId?.image ? (
@@ -268,9 +341,8 @@ export default function ItemDetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Always visible */}
           <div className="rounded-2xl border bg-background/50 p-6 space-y-3">
-            {/* Contact Seller - সবাই দেখতে পাবে */}
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
               onClick={handleContactSeller}
@@ -278,39 +350,48 @@ export default function ItemDetailsPage() {
               <Phone className="mr-2 h-4 w-4" /> Contact Seller
             </Button>
 
-            {/* ✅ শুধু Buyer দেখতে পাবে */}
-            {isBuyer && (
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800/30 dark:text-orange-400 dark:hover:bg-orange-950/30"
-                  onClick={handleBookmark}
-                >
-                  <Heart className="mr-2 h-4 w-4" /> Bookmark
-                </Button>
-                <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  onClick={handleBuyNow}
-                >
-                  <ShoppingBag className="mr-2 h-4 w-4" /> Buy Now
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-3">
+              <Button
+                variant={isBookmarked ? 'default' : 'outline'}
+                className={`flex-1 ${isBookmarked ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-800/30 dark:text-orange-400'}`}
+                onClick={handleBookmark}
+                disabled={actionLoading || item.status === 'sold' || !isLoggedIn || !isBuyer}
+              >
+                <Heart className={`mr-2 h-4 w-4 ${isBookmarked ? 'fill-white' : ''}`} />
+                {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+              </Button>
+              <Button
+                className={`flex-1 ${item.status === 'sold' || isOrdered || !isLoggedIn || !isBuyer ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                onClick={handleBuyNow}
+                disabled={actionLoading || item.status === 'sold' || isOrdered || !isLoggedIn || !isBuyer}
+              >
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                {item.status === 'sold' ? 'Sold' : isOrdered ? 'Ordered' : 'Buy Now'}
+              </Button>
+            </div>
 
-            {/* Buyer না হলে মেসেজ */}
-            {!isBuyer && isLoggedIn && user?.role !== 'buyer' && (
-              <p className="text-center text-xs text-muted-foreground">
-                🔒 Only buyers can bookmark or purchase properties.
-              </p>
-            )}
             {!isLoggedIn && (
               <p className="text-center text-xs text-muted-foreground">
-                <Link href="/login" className="text-orange-500 hover:underline">Login</Link> as a buyer to bookmark or buy.
+                <Link href="/login" className="text-orange-500 hover:underline">Login</Link> to bookmark or buy.
+              </p>
+            )}
+            {isLoggedIn && !isBuyer && (
+              <p className="text-center text-xs text-muted-foreground">
+                🔒 Only buyers can bookmark or purchase.
+              </p>
+            )}
+            {isLoggedIn && isBuyer && item.status === 'sold' && (
+              <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" /> This property has been sold.
+              </p>
+            )}
+            {isLoggedIn && isBuyer && isOrdered && item.status !== 'sold' && (
+              <p className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <CheckCircle className="h-5 w-5 text-orange-500" /> You already ordered this.
               </p>
             )}
           </div>
 
-          {/* Listed Date */}
           <div className="rounded-2xl border bg-background/50 p-4 text-center text-xs text-muted-foreground">
             Listed on {new Date(item.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
@@ -321,14 +402,36 @@ export default function ItemDetailsPage() {
         </div>
       </div>
 
+      {/* Buy Modal */}
+      <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogDescription>
+              You are about to purchase <strong>{item.title}</strong> for <strong>${item.price.toLocaleString()}</strong>.
+              <br />
+              <span className="text-xs text-muted-foreground">You can cancel within 24 hours.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowOrderModal(false)}>Cancel</Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={confirmOrder}
+              disabled={actionLoading}
+            >
+              {actionLoading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Related Properties */}
       {relatedItems.length > 0 && (
         <div className="mt-16">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Similar Properties</h2>
-            <Link href="/explore" className="text-sm text-orange-500 hover:underline">
-              View All
-            </Link>
+            <Link href="/explore" className="text-sm text-orange-500 hover:underline">View All</Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {relatedItems.map((relatedItem) => (

@@ -3,8 +3,9 @@ import { Inter, Geist } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { FooterWrapper } from '@/components/layout/FooterWrapper';
 import { cn } from "@/lib/utils";
+
 import { Toaster } from 'sonner';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -27,7 +28,7 @@ export default function RootLayout({
         <Providers>
           <Navbar />
           <main className="min-h-screen">{children}</main>
-          <Footer/>
+          <FooterWrapper/>
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

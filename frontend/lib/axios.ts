@@ -7,16 +7,19 @@ const api = axios.create({
   },
 });
 
-
 api.interceptors.request.use((config) => {
   const token = document.cookie
     .split('; ')
-    .find((row) => row.startsWith('token='))
+    .find(row => row.startsWith('token='))
     ?.split('=')[1];
+  
+  console.log('🔍 Token from cookie:', token ? token.substring(0, 20) + '...' : '❌ Not found');
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
+// ⚠️ ৪০১ হ্যান্ডলিং ছাড়া – যাতে অটোমেটিক লগআউট না হয়
 export default api;
