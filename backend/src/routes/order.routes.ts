@@ -68,12 +68,26 @@ router.post('/', protect, async (req, res) => {
 });
 
 // ✅ সব অর্ডার পাওয়া (Buyer-এর নিজের)
+// ✅ সব অর্ডার পাওয়া – অ্যাডমিন হলে সব, সাধারণ ইউজার হলে নিজের
 router.get('/', protect, async (req, res) => {
   try {
     const userId = req.user._id;
-    const orders = await Order.find({ userId }).populate('itemId').sort({ createdAt: -1 });
+    const userRole = req.user.role;
+
+    let query = {};
+    // অ্যাডমিন হলে সব অর্ডার, না হলে শুধু নিজের
+    if (userRole !== 'admin') {
+      query = { userId };
+    }
+
+    const orders = await Order.find(query)
+      .populate('itemId')
+      .populate('userId', 'name email') // অ্যাডমিনের জন্য Buyer-এর নামও দেখাতে
+      .sort({ createdAt: -1 });
+
     res.json({ orders });
   } catch (error) {
+    console.error('❌ Get orders error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
