@@ -15,6 +15,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'BariBazar - Find Your Perfect Home',
   description: 'Real estate platform for buying and selling properties',
+  icons: {
+    icon: '/logo.svg', // অথবা '/favicon.png'
+  },
 };
 
 export default function RootLayout({
