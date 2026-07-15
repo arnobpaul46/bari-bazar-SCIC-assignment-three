@@ -7,7 +7,7 @@ export function FooterWrapper() {
   const pathname = usePathname();
   
   // ড্যাশবোর্ড পেজগুলোতে ফুটার লুকান
-  if (pathname?.startsWith('/dashboard')) {
+  if (pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')) {
     return null;
   }
 

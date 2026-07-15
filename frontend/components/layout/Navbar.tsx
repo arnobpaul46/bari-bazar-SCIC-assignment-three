@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Moon, Sun, Menu, X, User, PlusCircle, LayoutDashboard,
-  LogOut, Bookmark, Settings, Home, Compass, Phone, Info
+  LogOut, Bookmark, Settings, Home, Compass, Phone, Info, Package
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -72,7 +72,6 @@ export function Navbar() {
 
   const isLoggedIn = !!user;
 
-  // ✅ পাবলিক নেভ (সবাই দেখবে – Home, Explore, About, Contact)
   const publicNavLinks = [
     { href: '/', label: 'Home', icon: Home },
     { href: '/explore', label: 'Explore', icon: Compass },
@@ -80,34 +79,36 @@ export function Navbar() {
     { href: '/contact', label: 'Contact', icon: Phone },
   ];
 
-  // ✅ ড্রপডাউনের জন্য রোল-ভিত্তিক লিংক
+  // ডেস্কটপ ড্রপডাউনের জন্য (Avatar-এ ক্লিক)
   const dropdownLinks = useMemo(() => {
     if (!isLoggedIn) return [];
     const links: { href: string; label: string; icon: any }[] = [];
 
     if (user?.role === 'buyer') {
+      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
       links.push({ href: '/dashboard/bookmarks', label: 'Bookmarks', icon: Bookmark });
-      links.push({ href: '/dashboard/orders', label: 'Orders', icon: LayoutDashboard });
+      links.push({ href: '/dashboard/orders', label: 'Orders', icon: Package });
       links.push({ href: '/dashboard/profile', label: 'Profile', icon: User });
     }
 
     if (user?.role === 'seller') {
+      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard });
       links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
       links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
       links.push({ href: '/dashboard/profile', label: 'Profile', icon: User });
     }
 
     if (user?.role === 'admin') {
+      links.push({ href: '/admin/dashboard', label: 'Admin Dashboard', icon: LayoutDashboard });
       links.push({ href: '/items/manage', label: 'My Listings', icon: LayoutDashboard });
       links.push({ href: '/items/add', label: 'Add Property', icon: PlusCircle });
-      links.push({ href: '/admin/dashboard', label: 'Admin Panel', icon: Settings });
       links.push({ href: '/admin/profile', label: 'Admin Profile', icon: User });
     }
 
     return links;
   }, [isLoggedIn, user]);
 
-  // ✅ লগইন অবস্থায় মেইন নেভে Dashboard যোগ হবে
+  // মেইন নেভ (ডেস্কটপ ও মোবাইলের উপরের অংশ)
   const mainNavLinks = useMemo(() => {
     const links = [...publicNavLinks];
     if (isLoggedIn) {
@@ -116,6 +117,15 @@ export function Navbar() {
     }
     return links;
   }, [isLoggedIn, user?.role]);
+
+  // মোবাইল মেনুর জন্য ইউনিক লিংক (ডুপ্লিকেট বাদ)
+  const mobileNavLinks = useMemo(() => {
+    // mainNavLinks থেকে href সেট তৈরি
+    const mainHrefs = new Set(mainNavLinks.map(link => link.href));
+    // dropdownLinks থেকে শুধু যেগুলো main-এ নেই, সেগুলো যোগ
+    const extraLinks = dropdownLinks.filter(link => !mainHrefs.has(link.href));
+    return [...mainNavLinks, ...extraLinks];
+  }, [mainNavLinks, dropdownLinks]);
 
   if (loading) {
     return (
@@ -137,7 +147,7 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* ✅ ডেস্কটপ নেভ – পাবলিক লিংক + লগইন করলে Dashboard */}
+          {/* ডেস্কটপ নেভ */}
           <nav className="hidden md:flex items-center space-x-6">
             {mainNavLinks.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
@@ -145,8 +155,7 @@ export function Navbar() {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-orange-500 ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                    }`}
+                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-orange-500 ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'}`}
                 >
                   {Icon && <Icon className="h-4 w-4" />}
                   {label}
@@ -187,7 +196,6 @@ export function Navbar() {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-56">
-                  {/* ইউজার ইনফো */}
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-0.5">
                       <p className="text-sm font-medium">{user?.name}</p>
@@ -204,8 +212,7 @@ export function Navbar() {
                         <DropdownMenuItem key={link.href} className="cursor-pointer p-0">
                           <Link
                             href={link.href}
-                            className={`flex w-full items-center px-2 py-1.5 text-sm ${isActive ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''
-                              }`}
+                            className={`flex w-full items-center px-2 py-1.5 text-sm ${isActive ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/30' : ''}`}
                           >
                             {Icon && <Icon className="mr-2 h-4 w-4" />}
                             {link.label}
@@ -251,60 +258,46 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ✅ মোবাইল মেনু */}
+      {/* ✅ মোবাইল মেনু – ডুপ্লিকেট ছাড়া */}
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background/95 backdrop-blur">
           <div className="mx-auto w-full max-w-[80%] px-4 py-3 space-y-2">
-            {mainNavLinks.map(({ href, label }) => {
+            {mobileNavLinks.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`block py-2 text-sm font-medium ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'
-                    }`}
+                  className={`flex items-center gap-2 py-2 text-sm font-medium ${isActive ? 'text-orange-500 font-semibold' : 'text-muted-foreground'}`}
                 >
+                  {Icon && <Icon className="h-4 w-4" />}
                   {label}
                 </Link>
               );
             })}
 
             {isLoggedIn && (
-              <>
-                {dropdownLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="block py-2 text-sm font-medium text-muted-foreground hover:text-orange-500"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+              <div className="border-t pt-2 space-y-1">
                 <button
                   onClick={() => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 text-sm font-medium text-red-600"
+                  className="flex w-full items-center gap-2 py-2 text-sm font-medium text-red-600"
                 >
-                  Sign Out
+                  <LogOut className="h-4 w-4" /> Sign Out
                 </button>
-              </>
+              </div>
             )}
 
             {!isLoggedIn && (
               <div className="border-t pt-2 space-y-2">
                 <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start">
-                    Login
-                  </Button>
+                  <Button variant="ghost" size="sm" className="w-full justify-start">Login</Button>
                 </Link>
                 <Link href="/register" onClick={() => setIsMenuOpen(false)}>
-                  <Button size="sm" className="w-full justify-start bg-orange-500 text-white">
-                    Register
-                  </Button>
+                  <Button size="sm" className="w-full justify-start bg-orange-500 text-white">Register</Button>
                 </Link>
               </div>
             )}

@@ -56,8 +56,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const navLinks = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/users', label: 'Users', icon: Users },
-    { href: '/items/add', label: 'Add Properties', icon: PlusCircle },
-    { href: '/items/manage', label: 'All Listings', icon: List },
+    { href: '/admin/items/add', label: 'Add Properties', icon: PlusCircle },
+    { href: '/admin/items/manage', label: 'All Listings', icon: List },
     { href: '/admin/orders', label: 'Orders', icon: Package },
     { href: '/admin/profile', label: 'Admin Profile', icon: User },
   ];
