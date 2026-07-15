@@ -134,7 +134,7 @@ export default function ExplorePage() {
             {/* ক্যাটাগরি + সর্ট */}
             <div className="flex flex-row gap-3 md:flex-initial">
               <div className="flex-1 md:min-w-[130px] md:flex-none">
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(value) => setCategory(value || '')}>
                   <SelectTrigger className="h-11 bg-background/60 border-muted/40 text-sm">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
