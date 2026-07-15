@@ -148,7 +148,7 @@ export default function ExplorePage() {
                 </Select>
               </div>
               <div className="flex-1 md:min-w-[130px] md:flex-none">
-                <Select value={sort} onValueChange={setSort}>
+                <Select value={sort} onValueChange={(value) => setSort(value || 'newest')}>
                   <SelectTrigger className="h-11 bg-background/60 border-muted/40 text-sm">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
