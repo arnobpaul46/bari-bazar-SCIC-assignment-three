@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { ExploreContent } from '@/components/ExploreContent';
+import { ExploreContent } from "@/components/home/ExploreContent";
 
 export default function ExplorePage() {
   return (
