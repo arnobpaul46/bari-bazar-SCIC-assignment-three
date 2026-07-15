@@ -28,7 +28,8 @@ export default function LoginPage() {
 
     try {
       const res = await api.post('/auth/login', { email, password });
-      document.cookie = `token=${res.data.token}; path=/; max-age=604800`;
+      const isProduction = process.env.NODE_ENV === 'production';
+      document.cookie = `token=${res.data.token}; path=/; max-age=604800; ${isProduction ? 'Secure; SameSite=None' : ''}`;
       router.push('/');
       router.refresh();
     } catch (err: any) {
